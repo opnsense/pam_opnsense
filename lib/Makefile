@@ -7,7 +7,9 @@ WARNS=	3
 
 LDADD+=	-lpam
 
+LOCALBASE?=${DESTDIR}/usr/local
 PREFIX?=${LOCALBASE}
+
 LIBDIR=	${PREFIX}/lib
 
 .include <bsd.lib.mk>
