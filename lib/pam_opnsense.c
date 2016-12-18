@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 static const char *auth_cmd = "/usr/local/sbin/opnsense-auth";
 
@@ -69,6 +71,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,int argc, const char **argv)
 	char *password;
 	char *service;
 	int pam_err;
+	int script_response = 255;
 	FILE *fp;
 
 	pam_err = pam_get_user(pamh, &user, NULL);
@@ -100,8 +103,14 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,int argc, const char **argv)
 	fprintf(fp, "%c", 0);
 
 	/* use exit status to authenticate */
-	if (pclose(fp)) {
-		pam_err = PAM_AUTH_ERR;
+	script_response = pclose(fp);
+	if (script_response) {
+		if (WEXITSTATUS(script_response) == 2) {
+			// signal user unknown, so PAM may consider other options (keep password available)
+			return PAM_USER_UNKNOWN;
+		} else {
+			pam_err = PAM_AUTH_ERR;
+		}
 	}
 
 	free(password);
