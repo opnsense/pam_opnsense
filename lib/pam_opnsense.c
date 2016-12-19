@@ -33,6 +33,22 @@
 #include <sys/wait.h>
 
 static const char *auth_cmd = "/usr/local/sbin/opnsense-auth";
+static const char *auth_ret = "opnsense_session_return";
+
+struct t_opnsense_session {
+	int	auth_status;
+};
+
+/*
+ * wipe status data
+ */
+static void
+pam_opnsense_session_free(pam_handle_t *pamh __unused, void *data, int pam_err __unused)
+{
+	struct t_opnsense_session *opnsense_session;
+	opnsense_session = data;
+	free(opnsense_session);
+}
 
 PAM_EXTERN int
 pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv)
@@ -43,7 +59,15 @@ pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv)
 PAM_EXTERN int
 pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-	return PAM_SUCCESS;
+	const void *item = NULL;
+	struct t_opnsense_session *opnsense_session = NULL;
+	int pam_err;
+	pam_err = pam_get_data(pamh, auth_ret, &item);
+	if (pam_err != PAM_SUCCESS) {
+		return PAM_USER_UNKNOWN;
+	}
+	opnsense_session = (struct t_opnsense_session *)item;
+	return opnsense_session->auth_status;
 }
 
 PAM_EXTERN int
@@ -73,47 +97,42 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,int argc, const char **argv)
 	int pam_err;
 	int script_response = 255;
 	FILE *fp;
+	struct t_opnsense_session *opnsense_session;
 
 	pam_err = pam_get_user(pamh, &user, NULL);
-	if (pam_err != PAM_SUCCESS) {
-		return pam_err;
-	}
+	if (pam_err == PAM_SUCCESS) {
+		pam_err = pam_get_item(pamh, PAM_SERVICE, (const void **)&service);
+		if (pam_err == PAM_SUCCESS) {
+			pam_err = pam_get_authtok(pamh, PAM_AUTHTOK, (const char **)&password, NULL);
+			if (pam_err == PAM_SUCCESS) {
+				fp = popen(auth_cmd, "w");
+				if (!fp) {
+					pam_err = PAM_SYSTEM_ERR;
+				} else {
+					/* send authentication data to script */
+					fprintf(fp, "service=%s%c", service, 0);
+					fprintf(fp, "user=%s%c", user, 0);
+					fprintf(fp, "password=%s%c", password, 0);
+					/* extra NUL to mark end of data */
+					fprintf(fp, "%c", 0);
 
-	pam_err = pam_get_item(pamh, PAM_SERVICE, (const void **)&service);
-	if (pam_err != PAM_SUCCESS) {
-		return pam_err;
-	}
-
-	pam_err = pam_get_authtok(pamh, PAM_AUTHTOK, (const char **)&password,
-	    NULL);
-	if (pam_err != PAM_SUCCESS) {
-		return pam_err;
-	}
-
-	fp = popen(auth_cmd, "w");
-	if (!fp) {
-		return PAM_SYSTEM_ERR;
-	}
-
-	/* send authentication data to script */
-	fprintf(fp, "service=%s%c", service, 0);
-	fprintf(fp, "user=%s%c", user, 0);
-	fprintf(fp, "password=%s%c", password, 0);
-	/* extra NUL to mark end of data */
-	fprintf(fp, "%c", 0);
-
-	/* use exit status to authenticate */
-	script_response = pclose(fp);
-	if (script_response) {
-		if (WEXITSTATUS(script_response) == 2) {
-			// signal user unknown, so PAM may consider other options (keep password available)
-			return PAM_USER_UNKNOWN;
-		} else {
-			pam_err = PAM_AUTH_ERR;
+					/* use exit status to authenticate */
+					script_response = pclose(fp);
+					if (script_response) {
+						if (WEXITSTATUS(script_response) == 2) {
+							// signal user unknown, so PAM may consider other options
+							pam_err = PAM_USER_UNKNOWN;
+						} else {
+							pam_err = PAM_AUTH_ERR;
+						}
+					}
+				}
+			}
 		}
 	}
 
-	free(password);
-
+	opnsense_session = (struct t_opnsense_session *)malloc(sizeof(struct t_opnsense_session));
+	opnsense_session->auth_status = pam_err;
+	pam_set_data(pamh, auth_ret, opnsense_session, pam_opnsense_session_free);
 	return (pam_err);
 }
