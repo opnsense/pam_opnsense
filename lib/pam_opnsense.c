@@ -35,19 +35,18 @@
 static const char *auth_cmd = "/usr/local/sbin/opnsense-auth";
 static const char *auth_ret = "opnsense_session_return";
 
-struct t_opnsense_session {
-	int	auth_status;
+struct opnsense_session {
+	int auth_status;
 };
 
-/*
- * wipe status data
- */
+/* wipe status data */
 static void
-pam_opnsense_session_free(pam_handle_t *pamh __unused, void *data, int pam_err __unused)
+pam_opnsense_session_free(pam_handle_t *pamh, void *data, int pam_err)
 {
-	struct t_opnsense_session *opnsense_session;
-	opnsense_session = data;
-	free(opnsense_session);
+	(void)pam_err;
+	(void)pamh;
+
+	free(data);
 }
 
 PAM_EXTERN int
@@ -59,15 +58,22 @@ pam_sm_setcred(pam_handle_t *pamh, int flags, int argc, const char **argv)
 PAM_EXTERN int
 pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
+	const struct opnsense_session *session;
 	const void *item = NULL;
-	struct t_opnsense_session *opnsense_session = NULL;
 	int pam_err;
+
 	pam_err = pam_get_data(pamh, auth_ret, &item);
 	if (pam_err != PAM_SUCCESS) {
 		return PAM_USER_UNKNOWN;
 	}
-	opnsense_session = (struct t_opnsense_session *)item;
-	return opnsense_session->auth_status;
+
+	if (!item) {
+		return PAM_BUF_ERR;
+	}
+
+	session = item;
+
+	return session->auth_status;
 }
 
 PAM_EXTERN int
@@ -91,13 +97,13 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc, const char **argv)
 PAM_EXTERN int
 pam_sm_authenticate(pam_handle_t *pamh, int flags,int argc, const char **argv)
 {
+	struct opnsense_session *session;
+	int script_response = 255;
 	const char *user;
 	char *password;
 	char *service;
 	int pam_err;
-	int script_response = 255;
 	FILE *fp;
-	struct t_opnsense_session *opnsense_session;
 
 	pam_err = pam_get_user(pamh, &user, NULL);
 	if (pam_err == PAM_SUCCESS) {
@@ -131,8 +137,13 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,int argc, const char **argv)
 		}
 	}
 
-	opnsense_session = (struct t_opnsense_session *)malloc(sizeof(struct t_opnsense_session));
-	opnsense_session->auth_status = pam_err;
-	pam_set_data(pamh, auth_ret, opnsense_session, pam_opnsense_session_free);
+	session = malloc(sizeof(*session));
+	if (!session) {
+		return PAM_BUF_ERR;
+	}
+
+	session->auth_status = pam_err;
+
+	pam_set_data(pamh, auth_ret, session, pam_opnsense_session_free);
 	return (pam_err);
 }
