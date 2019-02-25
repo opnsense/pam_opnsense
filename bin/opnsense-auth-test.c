@@ -37,7 +37,7 @@ static const char *user = "root";
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: opnsense-auth-test [-s service] [-u user]\n");
+	fprintf(stderr, "usage: man opnsense-auth-test\n");
 	exit(EXIT_FAILURE);
 }
 

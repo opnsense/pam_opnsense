@@ -1,9 +1,11 @@
-# OPNsense pam test service.
-# Example service to demonstrate the OPNsense pam connector using the supplied test utility.
+# OPNsense PAM test service
 #
-# To test this service use the following command:
+# Example service to test the PAM connector using
+# the supplied utility. To test this service use
+# the following command against the enabled web GUI
+# authentication servers (defaults to user root):
 #
-# opnsense-auth-test -s opnsense-auth-test -u root
+# opnsense-auth-test [-u <username>]
 
 # auth
 auth		sufficient	pam_opnsense.so
