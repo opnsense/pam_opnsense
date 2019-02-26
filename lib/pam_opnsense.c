@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Deciso B.V.
+ * Copyright (C) 2016-2019 Deciso B.V.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#include <syslog.h>
+
 
 static const char *auth_cmd = "/usr/local/sbin/opnsense-auth";
 static const char *auth_ret = "opnsense_session_return";
@@ -111,25 +114,30 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,int argc, const char **argv)
 		if (pam_err == PAM_SUCCESS) {
 			pam_err = pam_get_authtok(pamh, PAM_AUTHTOK, (const char **)&password, NULL);
 			if (pam_err == PAM_SUCCESS) {
-				fp = popen(auth_cmd, "w");
-				if (!fp) {
+				if (setuid (geteuid ()) == -1) {
+					syslog(LOG_AUTHPRIV, "setuid(%lu) failed: %m", (unsigned long) geteuid ());
 					pam_err = PAM_SYSTEM_ERR;
 				} else {
-					/* send authentication data to script */
-					fprintf(fp, "service=%s%c", service, 0);
-					fprintf(fp, "user=%s%c", user, 0);
-					fprintf(fp, "password=%s%c", password, 0);
-					/* extra NUL to mark end of data */
-					fprintf(fp, "%c", 0);
+					fp = popen(auth_cmd, "w");
+					if (!fp) {
+						pam_err = PAM_SYSTEM_ERR;
+					} else {
+						/* send authentication data to script */
+						fprintf(fp, "service=%s%c", service, 0);
+						fprintf(fp, "user=%s%c", user, 0);
+						fprintf(fp, "password=%s%c", password, 0);
+						/* extra NUL to mark end of data */
+						fprintf(fp, "%c", 0);
 
-					/* use exit status to authenticate */
-					script_response = pclose(fp);
-					if (script_response) {
-						if (WEXITSTATUS(script_response) == 2) {
-							// signal user unknown, so PAM may consider other options
-							pam_err = PAM_USER_UNKNOWN;
-						} else {
-							pam_err = PAM_AUTH_ERR;
+						/* use exit status to authenticate */
+						script_response = pclose(fp);
+						if (script_response) {
+							if (WEXITSTATUS(script_response) == 2) {
+								// signal user unknown, so PAM may consider other options
+								pam_err = PAM_USER_UNKNOWN;
+							} else {
+								pam_err = PAM_AUTH_ERR;
+							}
 						}
 					}
 				}
