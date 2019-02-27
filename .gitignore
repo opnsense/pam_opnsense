@@ -1,0 +1,7 @@
+*.o
+*.lo
+*.in
+*.pico
+*.depend
+*.po
+*~

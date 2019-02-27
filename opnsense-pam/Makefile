@@ -1,4 +1,4 @@
-PROG=	opn-auth
+PROG=	opnsense-pam
 MAN= # XXX
 
 WARNS=	6
@@ -6,6 +6,6 @@ WARNS=	6
 LOCALBASE?=${DESTDIR}/usr/local
 PREFIX?=${LOCALBASE}
 
-BINDIR=	${PREFIX}/sbin
+BINDIR=	${PREFIX}/libexec
 
 .include <bsd.prog.mk>

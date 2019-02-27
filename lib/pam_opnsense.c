@@ -35,7 +35,7 @@
 #include <syslog.h>
 
 
-static const char *auth_cmd = "/usr/local/sbin/opn-auth";
+static const char *auth_cmd = "/usr/local/libexec/opnsense-pam";
 static const char *auth_ret = "opnsense_session_return";
 
 struct opnsense_session {

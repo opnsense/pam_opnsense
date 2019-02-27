@@ -1,5 +1,5 @@
-PROG=	opnsense-auth-test
-MAN=	opnsense-auth-test.8
+PROG=	opnsense-login
+MAN=	opnsense-login.8
 
 WARNS=	6
 
