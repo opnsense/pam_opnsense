@@ -31,13 +31,13 @@
 #include <string.h>
 #include <unistd.h>
 
-static const char *service = "opnsense-auth-test";
+static const char *service = "opnsense-login";
 static const char *user = "root";
 
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: man opnsense-auth-test\n");
+	fprintf(stderr, "usage: man opnsense-login\n");
 	exit(EXIT_FAILURE);
 }
 

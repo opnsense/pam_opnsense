@@ -1,3 +1,3 @@
-SUBDIR=	opnsense-login opnsense-pam etc lib
+SUBDIR=	bin etc lib libexec
 
 .include <bsd.subdir.mk>

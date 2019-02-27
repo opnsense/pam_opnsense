@@ -5,7 +5,7 @@
 # the following command against the enabled web GUI
 # authentication servers (defaults to user root):
 #
-# opnsense-auth-test [-u <username>]
+# opnsense-login [-u <username>]
 
 # auth
 auth		sufficient	pam_opnsense.so

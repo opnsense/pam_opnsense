@@ -1,5 +1,5 @@
 PREFIX?=${LOCALBASE}
-FILES=	opnsense-auth-test
+FILES=	opnsense-login
 DIR=	/etc/pam.d/
 
 all:	# nothing to do
