@@ -1,7 +1,14 @@
+*.a
+*.debug
+*.full
+*.gz
 *.o
+*.so
 *.lo
 *.in
 *.pico
 *.depend
 *.po
 *~
+opnsense-login/opnsense-login
+opnsense-pam/opnsense-pam
