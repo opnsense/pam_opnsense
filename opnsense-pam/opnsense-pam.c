@@ -28,8 +28,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 static const char *auth_cmd = "/usr/local/libexec/opnsense-auth";
+
 
 /**
  * simple wrapper for our authentication script to allow root execution on opnsense-auth via the setuid bit
@@ -58,8 +60,9 @@ int main()
 				putc(ch, fp);
 		}
 		fclose(fp_stdin);
+
 		script_response = pclose(fp);
 	}
 
-	return 0;
+	return WEXITSTATUS(script_response);
 }
