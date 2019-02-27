@@ -29,8 +29,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static const char *auth_cmd = "/usr/local/sbin/opnsense-auth";
-
+static const char *auth_cmd = "/usr/local/libexec/opnsense-auth";
 
 /**
  * simple wrapper for our authentication script to allow root execution on opnsense-auth via the setuid bit
