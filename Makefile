@@ -1,3 +1,3 @@
-SUBDIR=	opnsense-auth-test opn-auth etc lib
+SUBDIR=	opnsense-login opnsense-pam etc lib
 
 .include <bsd.subdir.mk>
