@@ -1,6 +1,8 @@
-PREFIX?=${LOCALBASE}
 FILES=	opnsense-login
-DIR=	/etc/pam.d/
+DIR=	${PREFIX}/etc/pam.d
+
+LOCALBASE?=${DESTDIR}/usr/local
+PREFIX?=${LOCALBASE}
 
 all:	# nothing to do
 clean:	# nothing to do
