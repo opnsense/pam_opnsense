@@ -50,7 +50,7 @@ main(int argc, char **argv)
 	char pass[PASS_MAX + 1];
 	struct pam_conv pamc;
 	int pam_err, c;
-        int fd = -1;
+	int fd = -1;
 
 	while ((c = getopt(argc, argv, "h:qs:u:")) != -1) {
 		switch (c) {
