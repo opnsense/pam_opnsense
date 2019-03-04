@@ -26,6 +26,7 @@
 
 #include <security/pam_appl.h>
 #include <security/openpam.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,6 +34,7 @@
 
 static const char *service = "opnsense-login";
 static const char *user = "root";
+static int quiet = 0;
 
 static void
 usage(void)
@@ -45,11 +47,26 @@ int
 main(int argc, char **argv)
 {
 	pam_handle_t *pamh = NULL;
+	char pass[PASS_MAX + 1];
 	struct pam_conv pamc;
 	int pam_err, c;
+        int fd = -1;
 
-	while ((c = getopt(argc, argv, "s:u:")) != -1) {
+	while ((c = getopt(argc, argv, "h:qs:u:")) != -1) {
 		switch (c) {
+		case 'h': {
+			const char *errstr = NULL;
+
+			fd = strtonum(optarg, 0, INT_MAX, &errstr);
+			if (errstr) {
+				/* ignore faulty value */
+				fd = -1;
+			}
+			break;
+		}
+		case 'q':
+			quiet = 1;
+			break;
 		case 's':
 			service = optarg;
 			break;
@@ -70,28 +87,53 @@ main(int argc, char **argv)
 		/* NOTREACHED */
 	}
 
+	if (fd != -1) {
+		char *p;
+		int b;
+
+		b = read(fd, pass, sizeof(pass) - 1);
+		if (b < 0) {
+			if (!quiet) {
+				fprintf(stderr, "File descriptor read "
+				    "failed.\n");
+			}
+			exit(EXIT_FAILURE);
+		}
+
+		pass[b] = '\0';
+
+		if ((p = strpbrk(pass, "\r\n")) != NULL) {
+			*p = '\0';
+		}
+	}
+
 	memset(&pamc, 0, sizeof(pamc));
 	pamc.conv = &openpam_ttyconv;
 
 	pam_err = pam_start(service, user, &pamc, &pamh);
 	if (pam_err == PAM_SUCCESS) {
+		if (fd != -1) {
+			/* this could fail and falls through to interactive */
+			pam_set_item(pamh, PAM_AUTHTOK, pass);
+		}
 		pam_err = pam_authenticate(pamh, 0);
 		if (pam_err == PAM_SUCCESS) {
 			pam_err = pam_acct_mgmt(pamh, 0);
-			if (pam_err == PAM_SUCCESS) {
-				printf("User %s successfully authenticated "
-				    "for service %s\n", user, service);
+			if (pam_err == PAM_SUCCESS && !quiet) {
+				fprintf(stderr, "User %s successfully "
+				    "authenticated for service %s\n",
+				    user, service);
 			}
 		}
 	}
 
-	if (pam_err != PAM_SUCCESS) {
-		printf("User %s NOT authenticated for service %s\n",
+	if (pam_err != PAM_SUCCESS && !quiet) {
+		fprintf(stderr, "User %s NOT authenticated for service %s\n",
 		    user, service);
 	}
 
 	if (pam_end(pamh, pam_err) != PAM_SUCCESS) {
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	return (pam_err != PAM_SUCCESS);

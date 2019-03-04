@@ -8,7 +8,7 @@
 # opnsense-login [-u <username>]
 
 # auth
-auth		sufficient	pam_opnsense.so
+auth		sufficient	pam_opnsense.so try_first_pass
 
 # account
 account		sufficient	pam_opnsense.so
