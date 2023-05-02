@@ -38,12 +38,16 @@ static const char *auth_cmd = "/usr/local/libexec/opnsense-auth";
  * called from pam_opnsense.so as a stepping stone.
  * forwards all data received on stdin via popen
  */
-int main()
+int
+main(int argc, char **argv)
 {
 	int ch;
 	int script_response = 255;
 	FILE *fp;
 	FILE *fp_stdin;
+
+	(void)argc;
+	(void)argv;
 
 	fp = popen(auth_cmd, "w");
 	if (!fp) {
