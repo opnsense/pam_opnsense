@@ -9,6 +9,6 @@ LOCALBASE?=${DESTDIR}/usr/local
 PREFIX?=${LOCALBASE}
 
 BINDIR=	${PREFIX}/sbin
-MANDIR=	${PREFIX}/man/man
+MANDIR=	${PREFIX}/share/man/man
 
 .include <bsd.prog.mk>
